@@ -20,7 +20,8 @@ HACover::HACover(const char* uniqueId) :
     _commandCallback(nullptr),
     _currentState(StateUnknown),
     _currentPosition(0),
-    _retain(false)
+    _retain(false),
+    _class(nullptr)
 {
 
 }
@@ -217,6 +218,12 @@ uint16_t HACover::calculateSerializedLength(const char* serializedDevice) const
         size += topicLength + 11; // 11 - length of the JSON decorators for this field
     }
 
+    // device class
+    if (_class != nullptr) {
+        // Field format: ,"dev_cla":"[CLASS]"
+        size += strlen(_class) + 13; // 13 - length of the JSON decorators for this field
+    }
+
     return size; // exludes null terminator
 }
 
@@ -256,6 +263,12 @@ bool HACover::writeSerializedData(const char* serializedDevice) const
             Prefix,
             PositionTopic
         );
+    }
+
+    // device class
+    if (_class != nullptr) {
+        static const char Prefix[] PROGMEM = {",\"dev_cla\":\""};
+        DeviceTypeSerializer::mqttWriteConstCharField(Prefix, _class);
     }
 
     DeviceTypeSerializer::mqttWriteNameField(getName());

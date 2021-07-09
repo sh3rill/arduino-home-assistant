@@ -38,6 +38,14 @@ public:
     ) override;
 
     /**
+     * The type/class of the cover to set the icon in the frontend.
+     *
+     * @param className https://www.home-assistant.io/integrations/cover/#device-class
+     */
+    inline void setDeviceClass(const char* className)
+        { _class = className; }
+
+    /**
      * Changes state of the cover and publishes MQTT message.
      * Please note that if a new value is the same as previous one,
      * the MQTT message won't be published.
@@ -107,6 +115,8 @@ protected:
     CoverState _currentState;
     int16_t _currentPosition;
     bool _retain;
+
+    const char* _class;
 };
 
 #endif

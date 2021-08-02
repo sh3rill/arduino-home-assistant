@@ -15,19 +15,20 @@ static const char StopCommandStr[] PROGMEM = {"STOP"};
 
 const char* HACover::PositionTopic = "ps";
 
-HACover::HACover(const char* uniqueId) :
+HACover::HACover(const char* uniqueId, const bool disableStop) :
     BaseDeviceType("cover", uniqueId),
     _commandCallback(nullptr),
     _currentState(StateUnknown),
     _currentPosition(0),
     _retain(false),
-    _class(nullptr)
+    _class(nullptr),
+    _disableStop(disableStop)
 {
 
 }
 
-HACover::HACover(const char* uniqueId, HAMqtt& mqtt) :
-    HACover(uniqueId)
+HACover::HACover(const char* uniqueId, const bool disableStop, HAMqtt& mqtt) :
+    HACover(uniqueId, disableStop)
 {
     (void)mqtt;
 }
@@ -224,6 +225,11 @@ uint16_t HACover::calculateSerializedLength(const char* serializedDevice) const
         size += strlen(_class) + 13; // 13 - length of the JSON decorators for this field
     }
 
+  if (_disableStop == true) {
+    // Field format: ,"payload_stop":null
+    size += 20;
+  }
+
     return size; // exludes null terminator
 }
 
@@ -269,6 +275,12 @@ bool HACover::writeSerializedData(const char* serializedDevice) const
     if (_class != nullptr) {
         static const char Prefix[] PROGMEM = {",\"dev_cla\":\""};
         DeviceTypeSerializer::mqttWriteConstCharField(Prefix, _class);
+    }
+
+    // remove stop command
+    if (_disableStop == true) {
+        static const char Prefix[] PROGMEM = {",\"payload_stop\":"};
+        DeviceTypeSerializer::mqttWriteConstCharField(Prefix, "null", false);
     }
 
     DeviceTypeSerializer::mqttWriteNameField(getName());

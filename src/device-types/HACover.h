@@ -27,8 +27,8 @@ public:
         CommandStop
     };
 
-    HACover(const char* uniqueId);
-    HACover(const char* uniqueId, HAMqtt& mqtt); // legacy constructor
+    HACover(const char* uniqueId, bool disableStop);
+    HACover(const char* uniqueId, bool disableStop, HAMqtt& mqtt); // legacy constructor
 
     virtual void onMqttConnected() override;
     virtual void onMqttMessage(
@@ -117,6 +117,7 @@ protected:
     bool _retain;
 
     const char* _class;
+    bool _disableStop;
 };
 
 #endif

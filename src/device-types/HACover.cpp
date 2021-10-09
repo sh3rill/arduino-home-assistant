@@ -15,20 +15,21 @@ static const char StopCommandStr[] PROGMEM = {"STOP"};
 
 const char* HACover::PositionTopic = "ps";
 
-HACover::HACover(const char* uniqueId, const bool disableStop) :
+HACover::HACover(const char* uniqueId, const bool disableStop, const bool disablePosition) :
     BaseDeviceType("cover", uniqueId),
     _commandCallback(nullptr),
     _currentState(StateUnknown),
     _currentPosition(0),
     _retain(false),
     _class(nullptr),
-    _disableStop(disableStop)
+    _disableStop(disableStop),
+    _disablePosition(disablePosition)
 {
 
 }
 
-HACover::HACover(const char* uniqueId, const bool disableStop, HAMqtt& mqtt) :
-    HACover(uniqueId, disableStop)
+HACover::HACover(const char* uniqueId, const bool disableStop, bool disablePosition, HAMqtt& mqtt) :
+    HACover(uniqueId, disableStop, disablePosition)
 {
     (void)mqtt;
 }
@@ -49,7 +50,9 @@ void HACover::onMqttConnected()
 
     if (!_retain) {
         publishState(_currentState);
-        publishPosition(_currentPosition);
+        if (_disablePosition == false) {
+            publishPosition(_currentPosition);
+        }
     }
 }
 
@@ -203,6 +206,7 @@ uint16_t HACover::calculateSerializedLength(const char* serializedDevice) const
     }
 
     // position topic
+    if (_disablePosition == false)
     {
         const uint16_t& topicLength = DeviceTypeSerializer::calculateTopicLength(
             componentName(),
@@ -262,7 +266,7 @@ bool HACover::writeSerializedData(const char* serializedDevice) const
     }
 
     // position topic
-    {
+    if (_disablePosition == false) {
         static const char Prefix[] PROGMEM = {",\"pos_t\":\""};
         DeviceTypeSerializer::mqttWriteTopicField(
             this,

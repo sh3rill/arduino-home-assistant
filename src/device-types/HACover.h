@@ -27,8 +27,8 @@ public:
         CommandStop
     };
 
-    HACover(const char* uniqueId);
-    HACover(const char* uniqueId, HAMqtt& mqtt); // legacy constructor
+    HACover(const char* uniqueId, bool disableStop, bool disablePosition);
+    HACover(const char* uniqueId, bool disableStop, bool disablePosition, HAMqtt& mqtt); // legacy constructor
 
     virtual void onMqttConnected() override;
     virtual void onMqttMessage(
@@ -36,6 +36,14 @@ public:
         const uint8_t* payload,
         const uint16_t& length
     ) override;
+
+    /**
+     * The type/class of the cover to set the icon in the frontend.
+     *
+     * @param className https://www.home-assistant.io/integrations/cover/#device-class
+     */
+    inline void setDeviceClass(const char* className)
+        { _class = className; }
 
     /**
      * Changes state of the cover and publishes MQTT message.
@@ -107,6 +115,10 @@ protected:
     CoverState _currentState;
     int16_t _currentPosition;
     bool _retain;
+
+    const char* _class;
+    bool _disableStop;
+    bool _disablePosition;
 };
 
 #endif

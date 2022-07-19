@@ -15,18 +15,21 @@ static const char StopCommandStr[] PROGMEM = {"STOP"};
 
 const char* HACover::PositionTopic = "ps";
 
-HACover::HACover(const char* uniqueId) :
+HACover::HACover(const char* uniqueId, const bool disableStop, const bool disablePosition) :
     BaseDeviceType("cover", uniqueId),
     _commandCallback(nullptr),
     _currentState(StateUnknown),
     _currentPosition(0),
-    _retain(false)
+    _retain(false),
+    _class(nullptr),
+    _disableStop(disableStop),
+    _disablePosition(disablePosition)
 {
 
 }
 
-HACover::HACover(const char* uniqueId, HAMqtt& mqtt) :
-    HACover(uniqueId)
+HACover::HACover(const char* uniqueId, const bool disableStop, bool disablePosition, HAMqtt& mqtt) :
+    HACover(uniqueId, disableStop, disablePosition)
 {
     (void)mqtt;
 }
@@ -47,7 +50,9 @@ void HACover::onMqttConnected()
 
     if (!_retain) {
         publishState(_currentState);
-        publishPosition(_currentPosition);
+        if (_disablePosition == false) {
+            publishPosition(_currentPosition);
+        }
     }
 }
 
@@ -201,6 +206,7 @@ uint16_t HACover::calculateSerializedLength(const char* serializedDevice) const
     }
 
     // position topic
+    if (_disablePosition == false)
     {
         const uint16_t& topicLength = DeviceTypeSerializer::calculateTopicLength(
             componentName(),
@@ -216,6 +222,17 @@ uint16_t HACover::calculateSerializedLength(const char* serializedDevice) const
         // Field format: ,"pos_t":"[TOPIC]"
         size += topicLength + 11; // 11 - length of the JSON decorators for this field
     }
+
+    // device class
+    if (_class != nullptr) {
+        // Field format: ,"dev_cla":"[CLASS]"
+        size += strlen(_class) + 13; // 13 - length of the JSON decorators for this field
+    }
+
+  if (_disableStop == true) {
+    // Field format: ,"payload_stop":null
+    size += 20;
+  }
 
     return size; // exludes null terminator
 }
@@ -249,13 +266,25 @@ bool HACover::writeSerializedData(const char* serializedDevice) const
     }
 
     // position topic
-    {
+    if (_disablePosition == false) {
         static const char Prefix[] PROGMEM = {",\"pos_t\":\""};
         DeviceTypeSerializer::mqttWriteTopicField(
             this,
             Prefix,
             PositionTopic
         );
+    }
+
+    // device class
+    if (_class != nullptr) {
+        static const char Prefix[] PROGMEM = {",\"dev_cla\":\""};
+        DeviceTypeSerializer::mqttWriteConstCharField(Prefix, _class);
+    }
+
+    // remove stop command
+    if (_disableStop == true) {
+        static const char Prefix[] PROGMEM = {",\"payload_stop\":"};
+        DeviceTypeSerializer::mqttWriteConstCharField(Prefix, "null", false);
     }
 
     DeviceTypeSerializer::mqttWriteNameField(getName());
